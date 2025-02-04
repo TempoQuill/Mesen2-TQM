@@ -110,13 +110,13 @@ LoadRomResult GbaConsole::LoadRom(VirtualFile& romFile)
 
 	_memoryManager.reset(new GbaMemoryManager(_emu, this, _ppu.get(), _dmaController.get(), _controlManager.get(), _timer.get(), _apu.get(), _cart.get(), _serial.get(), _prefetch.get()));
 
-	_prefetch->Init(_memoryManager.get());
+	_prefetch->Init(_memoryManager.get(), _cpu.get());
 	_cart->Init(_emu, this, _memoryManager.get(), _saveType, _rtcType, _cartType);
 	_ppu->Init(_emu, this, _memoryManager.get());
 	_apu->Init(_emu, this, _dmaController.get(), _memoryManager.get());
 	_timer->Init(_memoryManager.get(), _apu.get());
 	_dmaController->Init(_cpu.get(), _memoryManager.get(), _prefetch.get());
-	_cpu->Init(_emu, _memoryManager.get());
+	_cpu->Init(_emu, _memoryManager.get(), _prefetch.get());
 	_serial->Init(_emu, _memoryManager.get());
 	_controlManager->Init(_memoryManager.get());
 	
@@ -182,8 +182,8 @@ void GbaConsole::InitSaveRam(string& gameCode, vector<uint8_t>& romData)
 		if(gameCode == "A2YE") {
 			//Force no backup data for Top Gun, otherwise A button doesn't work in menu
 			_saveType = GbaSaveType::None;
-		} else if(gameCode == "AYGE") {
-			//Force 512-byte eeprom for Gauntlet (auto-detect logic doesn't work)
+		} else if(gameCode == "AYGE" || gameCode == "ALUE" || gameCode == "ALUP") {
+			//Force 512-byte eeprom for Gauntlet (AYGE) and Super Monkey Ball Jr. (ALUE & ALUP) (auto-detect logic doesn't work)
 			_saveType = GbaSaveType::Eeprom512;
 		} else if(gameCode == "AI2E") {
 			//Iridion II crashes if it has SRAM, force it to none
@@ -195,11 +195,11 @@ void GbaConsole::InitSaveRam(string& gameCode, vector<uint8_t>& romData)
 				}
 			};
 
-			checkMarker("SRAM_", GbaSaveType::Sram);
-			checkMarker("EEPROM_", GbaSaveType::EepromUnknown);
-			checkMarker("FLASH_", GbaSaveType::Flash64);
-			checkMarker("FLASH512_", GbaSaveType::Flash64);
-			checkMarker("FLASH1M_", GbaSaveType::Flash128);
+			checkMarker("SRAM_V", GbaSaveType::Sram);
+			checkMarker("EEPROM_V", GbaSaveType::EepromUnknown);
+			checkMarker("FLASH_V", GbaSaveType::Flash64);
+			checkMarker("FLASH512_V", GbaSaveType::Flash64);
+			checkMarker("FLASH1M_V", GbaSaveType::Flash128);
 
 			if(_saveType == GbaSaveType::AutoDetect) {
 				//Default to SRAM when nothing is found, for best compatibility
